@@ -30,13 +30,3 @@ The idea has similar concepts to the Schrödinger's Cat experiment.  In that exp
 
 This algorithm works in a similar way, except with a few dozen states and a few hundred cats.  The positions are represented in the texture and the cats are represented as the canvas.
 
-
-[Step 1]
-
-The algoritm will recursively observe a point on the canvas, which will resolve the value or a single point on the texture.
-
-
-
-The algoirthm starts with a canvas, where each point could possibly be any point on the canvas.  We then "observe" a single point on the canvas.  By observing that point, it then reduces the possible outcome of neighboring points.  We repeat this process, observing one point at a time, reducing the possible states of points.  
-
-continue to observe those neighbors, which furpoints along the canvas, and only keep values that are possible in the texture.
