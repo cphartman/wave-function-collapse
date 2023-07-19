@@ -32,9 +32,8 @@ class Canvas {
     async Generate() {
         let isDone = false;
         while (!isDone) {
-            let coords = this.GetRandomUnresolvedPoint();
-            // Rename "Tile" to "Point"
-            this.ResolvePoint(coords[0], coords[1]);
+            let coordinates = this.GetRandomUnresolvedPoint();
+            this.ResolvePoint(coordinates[0], coordinates[1]);
             this.ResolveCanvasConstraints();
             this.Print();
             isDone = !this.HasUnresolvedPoints();
