@@ -1,19 +1,6 @@
 const Profiler = require("./Profiler");
+const Config = require("./config");
 
-class Cell {
-    constructor(tiles) {
-        this.tiles = tiles;
-
-        // Set cell to all possible tiles
-        
-        this.possibleTiles = [];
-        this.dirty = false;
-        
-        for (let i = 0; i < this.tiles.length; i++) {
-            this.possibleTiles.push(i);
-        }
-    }
-}
 
 
 let DirtyCellList = [];
@@ -26,10 +13,10 @@ let Directions = {
     Left: 3,
 }
 
-class Map {
-    constructor(width, height, tiles, adjacencyRules) {
-        AdjacencyRules = adjacencyRules;
-        this.tiles = tiles;
+class Canvas {
+    constructor(width, height, texture) {
+        AdjacencyRules = texture.adjacencyRules;
+        this.tiles = texture.tiles;
         this.gridHeight = height;
         this.gridWidth = width;
         this.grid = new Array(this.gridHeight);
@@ -37,53 +24,45 @@ class Map {
         for (let y = 0; y < this.gridHeight; y++) {
             this.grid[y] = new Array(this.gridWidth);
             for (let x = 0; x < this.gridWidth; x++) {
-                this.grid[y][x] = new Cell(tiles);
+                this.grid[y][x] = new Cell(this.tiles);
             }
         }
     }
 
+    async Generate() {
+        let isDone = false;
+        while (!isDone) {
+            let coords = this.GetRandomUnresolvedPoint();
+            // Rename "Tile" to "Point"
+            this.ResolvePoint(coords[0], coords[1]);
+            this.ResolveCanvasConstraints();
+            this.Print();
+            isDone = !this.HasUnresolvedPoints();
+        }
+    }
+
+
     Print() {
-        console.clear();
 
         let output = "";
+
+        // Add a bunch of padding so it animates without needing to clear the screen
+        output += "\n".repeat(20);
+
         for (let y = 0; y < this.gridHeight; y++) {
             for (let x = 0; x < this.gridWidth; x++) {
-                if (this.grid[y][x].possibleTiles.length == 1) {
-                    let tile = this.grid[y][x].possibleTiles[0];
-                    output += this.tiles[tile].data[0][0];
-                } else {
-                    // Show unresolved count
-                    output += this.grid[y][x].possibleTiles.length > 9 ? 9 : this.grid[y][x].possibleTiles.length;
-
-                    // Show blank unresolved tiles
-                    //output += "?";
-                }
+                let cell = this.grid[y][x];
+                output += cell.GetOutput();
             }
             output += "\n";
         }
+        
         console.log(output);
-
-        for (let tag in Profiler.Results) {
-            let profiles = Profiler.Results[tag];
-            let total = profiles.length;
-            let average = Math.floor(profiles.reduce((a, b) => a + b) / total);
-            let max = Math.max(profiles);
-            console.log(`${tag}: total=${total} average=${average}`);
-        }
     }
 
-    ResolveTile(x, y) {
-        if (this.grid[y][x].possibleTiles.length == 1) {
-            console.log(`Tile ${x},${y} already resolved to ${this.grid[y][x].possibleTiles[0]}`);
-            debugger;
-        }
+    ResolvePoint(x, y) {
 
-        if (this.grid[y][x].possibleTiles.length == 0) {
-            console.log(`Tile ${x},${y} has not possibilities`);
-            debugger;
-        }
-
-        //let weightedPossibleTileList = this.grid[y][x].possibleTiles;
+        // Generate a list of possible tiles
         let weightedPossibleTileList = [];
         for (let possibleTileIndex of this.grid[y][x].possibleTiles) {
             for (let f = 0; f < this.tiles[possibleTileIndex].frequency; f++) {
@@ -91,10 +70,14 @@ class Map {
             }
         }
 
+        // Pick a random possible tile
         let randomTileIndex = Math.floor(Math.random() * weightedPossibleTileList.length);
-        //console.log(`Assigining ${x},${y} to ${randomTile}`);
         this.grid[y][x].possibleTiles = [weightedPossibleTileList[randomTileIndex]];
+
+        // Mark neighbors as dirty
         this.MarkNeighborsDirty(x, y);
+
+        this.DebuggerStepThrough();
     }
 
     MarkNeighborsDirty(x, y) {
@@ -114,33 +97,7 @@ class Map {
         this.grid[y][rightX].dirty = true;
     }
 
-    Tick() {
-        let p = new Profiler("Tick");
-
-        if (this.HasRandomUnresolvedTile()) {
-            let coords = this.GetRandomUnresolvedTile();
-            this.ResolveTile(coords[0], coords[1]);
-            this.ResolveMapConstraints();
-            p.end();
-            this.Print();
-            setTimeout(this.Tick.bind(this), 1);
-
-        } else {
-            p.end();
-
-            for (let tag in Profiler.Results) {
-                let profiles = Profiler.Results[tag];
-                let total = profiles.length;
-                let average = Math.floor(profiles.reduce((a, b) => a + b) / total);
-                let max = Math.max(profiles);
-                //console.log(`${tag}: total=${total} average=${average}`);
-            }
-
-            //setTimeout(GenerateOutput, 1000);
-        }
-    }
-
-    HasRandomUnresolvedTile() {
+    HasUnresolvedPoints() {
         let p = new Profiler("HasRandomUnresolvedTile");
 
         for (let y = 0; y < this.gridHeight; y++) {
@@ -155,7 +112,7 @@ class Map {
         return false;
     }
 
-    GetRandomUnresolvedTile() {
+    GetRandomUnresolvedPoint() {
         let p = new Profiler("GetRandomUnresolvedTile");
 
         // Get lowest entropy cells
@@ -186,9 +143,8 @@ class Map {
         return lowestEntropyCells[randIndex];
     }
 
-    ResolveMapConstraints() {
-        let isMapResolved = true;
-
+    ResolveCanvasConstraints() {
+        let isMapResolved = false;
         let pMapResolved = new Profiler("ResolveMapConstraints");
         do {
             let pMapUnresolved = new Profiler("ResolveMapConstraints Unresolved Loop");
@@ -198,8 +154,6 @@ class Map {
             for (var dirtyCellCords of oldDirtyCellList) {
                 let x = dirtyCellCords[0];
                 let y = dirtyCellCords[1];
-                //for (let y = 0; y < this.gridHeight; y++) {
-                //    for (let x = 0; x < this.gridWidth; x++) {
                 let pTile = new Profiler("ResolveMapConstraints Tile Iteration");
 
                 let currentPossibleTiles = this.grid[y][x].possibleTiles;
@@ -280,8 +234,54 @@ class Map {
             }
             pMapUnresolved.end();
         } while (DirtyCellList.length);
+
+        this.DebuggerStepThrough();
+
         pMapResolved.end();
+    }
+
+    DebuggerStepThrough() {
+        if( Config.Debug.StepThrough) {
+            this.Print();
+            debugger;
+        }
     }
 }
 
-module.exports = Map;
+// Cell represnts a point on the canvas.  
+// The cell has a list of possible texture tiles that will collapse down to a single texture tile
+class Cell {
+    constructor(tiles) {
+        this.tiles = tiles;
+
+        // Set cell to all possible tiles
+        this.possibleTiles = [];
+        this.dirty = false;
+
+        for (let i = 0; i < this.tiles.length; i++) {
+            this.possibleTiles.push(i);
+        }
+    }
+
+    GetOutput() {
+        if (this.possibleTiles.length == 1) {
+            // Tile value is known
+            let tileIndex = this.possibleTiles[0];
+            return this.tiles[tileIndex].data[0][0];
+        } else if( Config.Debug.StepThrough ) {
+            // Tile value is unknown (debug)
+            let count = this.possibleTiles.length;
+            if( count < 10 ) {
+                return count;
+            } else {
+                return "?";
+            }
+        } else {
+            // Tile value is unknown
+            return "?";
+        }
+    }
+}
+
+
+module.exports = Canvas;

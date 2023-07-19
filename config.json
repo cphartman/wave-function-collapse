@@ -1,0 +1,11 @@
+{
+    "TextureName": "1",
+    "TileSize": 3,
+
+    "CanvasWidth": 40,
+    "CanvasHeight": 20,
+
+    "Debug": {
+        "StepThrough": false
+    }
+}
