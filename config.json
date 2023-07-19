@@ -6,6 +6,6 @@
     "CanvasHeight": 20,
 
     "Debug": {
-        "StepThrough": false
+        "StepThrough": true
     }
 }

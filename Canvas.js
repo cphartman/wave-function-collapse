@@ -41,24 +41,6 @@ class Canvas {
     }
 
 
-    Print() {
-
-        let output = "";
-
-        // Add a bunch of padding so it animates without needing to clear the screen
-        output += "\n".repeat(20);
-
-        for (let y = 0; y < this.gridHeight; y++) {
-            for (let x = 0; x < this.gridWidth; x++) {
-                let cell = this.grid[y][x];
-                output += cell.GetOutput();
-            }
-            output += "\n";
-        }
-        
-        console.log(output);
-    }
-
     ResolvePoint(x, y) {
 
         // Generate a list of possible tiles
@@ -242,8 +224,25 @@ class Canvas {
     DebuggerStepThrough() {
         if( Config.Debug.StepThrough) {
             this.Print();
-            debugger;
         }
+    }
+
+    Print() {
+
+        let output = "";
+
+        // Add a bunch of padding so it animates without needing to clear the screen
+        output += "\n".repeat(20);
+
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                let cell = this.grid[y][x];
+                output += cell.GetOutput();
+            }
+            output += "\n";
+        }
+        
+        console.log(output);
     }
 }
 
