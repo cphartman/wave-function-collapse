@@ -1,4 +1,5 @@
 {
     //"debug.console.lineHeight": 14
-    "debug.console.lineHeight": 10
+    "debug.console.lineHeight": 10,
+    "debug.console.collapseIdenticalLines": false
 }
